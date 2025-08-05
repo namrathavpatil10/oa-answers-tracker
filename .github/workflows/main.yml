@@ -1,0 +1,39 @@
+name: Update Answers Data
+
+on:
+  push:
+    paths:
+      - 'answers.json'
+    branches:
+      - main
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        
+    - name: Validate JSON
+      run: |
+        echo "Validating answers.json..."
+        node -e "
+          const fs = require('fs');
+          const data = JSON.parse(fs.readFileSync('answers.json', 'utf8'));
+          console.log('✅ JSON is valid');
+          console.log('📊 Total answers:', data.length);
+        "
+        
+    - name: Commit and push if changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add answers.json
+        git diff --staged --quiet || git commit -m "Auto-update answers data"
+        git push
