@@ -7,6 +7,7 @@ A simple web application to track correct answers from Online Assessments (OAs) 
 - ✅ **Add new answers** with company name, date, question, and answer
 - ✅ **View in Card or Table format** - toggle between views
 - ✅ **Mark favorites** - star your important answers
+- ✅ **Delete answers** - remove unwanted entries
 - ✅ **Download updated JSON** - export your data
 - ✅ **Responsive design** - works on desktop and mobile
 - ✅ **Local storage** - your data persists in browser
@@ -28,7 +29,12 @@ A simple web application to track correct answers from Online Assessments (OAs) 
    - It changes to ★ when favorited
    - Works in both card and table views
 
-4. **Download Data**:
+4. **Delete Answers**:
+   - Click the 🗑️ Delete button next to any answer
+   - Confirm deletion in the popup
+   - Answer is permanently removed
+
+5. **Download Data**:
    - Click the "Download Updated JSON" button
    - Saves your current data as `answers.json`
 
