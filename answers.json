@@ -1,0 +1,16 @@
+[
+  {
+    "company": "Google",
+    "date": "2024-06-01",
+    "question": "What is a binary search?",
+    "answer": "A search algorithm that finds the position of a target value within a sorted array.",
+    "favorite": false
+  },
+  {
+    "company": "Amazon",
+    "date": "2024-06-02",
+    "question": "Explain quicksort.",
+    "answer": "A divide-and-conquer algorithm that sorts by partitioning arrays.",
+    "favorite": true
+  }
+] 

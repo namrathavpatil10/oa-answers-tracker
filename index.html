@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OA Correct Answers Tracker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>OA Correct Answers Tracker</h1>
+  
+  <!-- Add New Answer Form -->
+  <div class="form-container">
+    <h2>Add New Answer</h2>
+    <form id="add-answer-form">
+      <div class="form-group">
+        <label for="company">Company Name:</label>
+        <input type="text" id="company" required>
+      </div>
+      <div class="form-group">
+        <label for="date">Date:</label>
+        <input type="date" id="date" required>
+      </div>
+      <div class="form-group">
+        <label for="question">Question:</label>
+        <textarea id="question" required></textarea>
+      </div>
+      <div class="form-group">
+        <label for="answer">Answer:</label>
+        <textarea id="answer" required></textarea>
+      </div>
+      <button type="submit">Add Answer</button>
+    </form>
+  </div>
+
+  <!-- View Toggle -->
+  <div class="view-toggle">
+    <button id="card-view-btn" class="view-btn active">Card View</button>
+    <button id="table-view-btn" class="view-btn">Table View</button>
+  </div>
+
+  <div id="answers-container"></div>
+  <div id="table-container" style="display: none;"></div>
+  <script src="main.js"></script>
+</body>
+</html> 
