@@ -68,6 +68,33 @@
     </form>
   </div>
 
+  <!-- Search and Filter Section -->
+  <div class="search-container">
+    <h3>Search & Filter</h3>
+    <div class="search-filters">
+      <div class="filter-group">
+        <label for="search-text">Search Questions:</label>
+        <input type="text" id="search-text" placeholder="Enter keywords...">
+      </div>
+      <div class="filter-group">
+        <label for="company-filter">Company:</label>
+        <select id="company-filter">
+          <option value="">All Companies</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="date-from">Date From:</label>
+        <input type="date" id="date-from">
+      </div>
+      <div class="filter-group">
+        <label for="date-to">Date To:</label>
+        <input type="date" id="date-to">
+      </div>
+      <button id="search-btn" class="search-btn">🔍 Search</button>
+      <button id="clear-search-btn" class="clear-btn">🗑️ Clear</button>
+    </div>
+  </div>
+
   <div id="table-container"></div>
   <script src="main.js"></script>
 </body>

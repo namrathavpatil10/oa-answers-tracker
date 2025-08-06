@@ -2,6 +2,12 @@
 // OA Correct Answers Tracker - Firebase Firestore Integration
 // =============================================================================
 
+// Global variables for search and pagination
+let allAnswers = [];
+let filteredAnswers = [];
+let currentPage = 1;
+const itemsPerPage = 10;
+
 // Firebase Firestore functions
 async function loadAnswers() {
   try {
@@ -86,7 +92,11 @@ function setupRealtimeListener() {
             ...doc.data()
           });
         });
-        renderTable(answers, 1);
+        
+        allAnswers = answers;
+        applyFilters();
+        updateCompanyFilter();
+        renderTable(filteredAnswers, 1);
       }
     );
     
@@ -98,10 +108,94 @@ function setupRealtimeListener() {
 }
 
 // =============================================================================
+// Search and Filter Functions
+// =============================================================================
+
+function applyFilters() {
+  const searchText = document.getElementById('search-text').value.toLowerCase();
+  const companyFilter = document.getElementById('company-filter').value;
+  const dateFrom = document.getElementById('date-from').value;
+  const dateTo = document.getElementById('date-to').value;
+  
+  filteredAnswers = allAnswers.filter(answer => {
+    // Text search
+    const matchesSearch = !searchText || 
+      answer.question.toLowerCase().includes(searchText) ||
+      answer.answer.toLowerCase().includes(searchText) ||
+      answer.company.toLowerCase().includes(searchText);
+    
+    // Company filter
+    const matchesCompany = !companyFilter || answer.company === companyFilter;
+    
+    // Date range filter
+    let matchesDate = true;
+    if (dateFrom && answer.date < dateFrom) matchesDate = false;
+    if (dateTo && answer.date > dateTo) matchesDate = false;
+    
+    return matchesSearch && matchesCompany && matchesDate;
+  });
+  
+  currentPage = 1;
+  renderTable(filteredAnswers, 1);
+}
+
+function updateCompanyFilter() {
+  const companyFilter = document.getElementById('company-filter');
+  const companies = [...new Set(allAnswers.map(answer => answer.company))].sort();
+  
+  // Keep current selection
+  const currentValue = companyFilter.value;
+  
+  // Clear existing options except "All Companies"
+  companyFilter.innerHTML = '<option value="">All Companies</option>';
+  
+  // Add company options
+  companies.forEach(company => {
+    const option = document.createElement('option');
+    option.value = company;
+    option.textContent = company;
+    companyFilter.appendChild(option);
+  });
+  
+  // Restore selection if it still exists
+  if (currentValue && companies.includes(currentValue)) {
+    companyFilter.value = currentValue;
+  }
+}
+
+function clearFilters() {
+  document.getElementById('search-text').value = '';
+  document.getElementById('company-filter').value = '';
+  document.getElementById('date-from').value = '';
+  document.getElementById('date-to').value = '';
+  applyFilters();
+}
+
+// =============================================================================
+// Copy Functionality
+// =============================================================================
+
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    showSuccessMessage('Copied to clipboard! 📋');
+  } catch (error) {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    showSuccessMessage('Copied to clipboard! 📋');
+  }
+}
+
+// =============================================================================
 // UI Rendering Functions
 // =============================================================================
 
-function renderTable(answers, currentPage = 1) {
+function renderTable(answers, page = 1) {
   const container = document.getElementById('table-container');
   container.innerHTML = '';
   
@@ -111,9 +205,8 @@ function renderTable(answers, currentPage = 1) {
   }
   
   // Pagination settings
-  const itemsPerPage = 10;
   const totalPages = Math.ceil(answers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
+  const startIndex = (page - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentAnswers = answers.slice(startIndex, endIndex);
   
@@ -126,7 +219,7 @@ function renderTable(answers, currentPage = 1) {
   
   // Add pagination if needed
   if (totalPages > 1) {
-    const pagination = createPaginationControls(currentPage, totalPages, answers.length);
+    const pagination = createPaginationControls(page, totalPages, answers.length);
     container.appendChild(pagination);
   }
 }
@@ -179,7 +272,8 @@ function createTableRow(item) {
       </button>
     </td>
     <td>
-      <button class="delete-btn-table" data-id="${item.id}">🗑️</button>
+      <button class="copy-btn-table" data-answer="${escapeHtml(item.answer)}" title="Copy Answer">📋</button>
+      <button class="delete-btn-table" data-id="${item.id}" title="Delete">🗑️</button>
     </td>
   `;
   
@@ -187,6 +281,71 @@ function createTableRow(item) {
   addRowEventListeners(row, item);
   
   return row;
+}
+
+function addRowEventListeners(row, item) {
+  // Favorite button
+  row.querySelector('.fav-btn-table').onclick = async function() {
+    const answerId = this.getAttribute('data-id');
+    const currentFavorite = this.getAttribute('data-favorite') === 'true';
+    const newFavorite = !currentFavorite;
+    
+    try {
+      await updateFavoriteInFirestore(answerId, newFavorite);
+      // Real-time listener will update the UI automatically
+    } catch (error) {
+      alert('Error updating favorite: ' + error.message);
+    }
+  };
+  
+  // Copy button
+  row.querySelector('.copy-btn-table').onclick = function() {
+    const answerText = this.getAttribute('data-answer');
+    copyToClipboard(answerText);
+  };
+  
+  // Delete button
+  row.querySelector('.delete-btn-table').onclick = async function() {
+    const answerId = this.getAttribute('data-id');
+    
+    if (confirm('Are you sure you want to delete this answer?')) {
+      try {
+        await deleteAnswerFromFirestore(answerId);
+        // Real-time listener will update the UI automatically
+      } catch (error) {
+        alert('Error deleting answer: ' + error.message);
+      }
+    }
+  };
+}
+
+function createPaginationControls(currentPage, totalPages, totalAnswers) {
+  const pagination = document.createElement('div');
+  pagination.className = 'pagination';
+  
+  // Previous button
+  if (currentPage > 1) {
+    const prevBtn = document.createElement('button');
+    prevBtn.textContent = '← Previous';
+    prevBtn.onclick = () => renderTable(filteredAnswers, currentPage - 1);
+    pagination.appendChild(prevBtn);
+  }
+  
+  // Page numbers
+  const pageInfo = document.createElement('span');
+  pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${totalAnswers} total answers)`;
+  pageInfo.className = 'page-info';
+  pagination.appendChild(pageInfo);
+  
+  // Next button
+  if (currentPage < totalPages) {
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = 'Next →';
+    nextBtn.onclick = () => renderTable(filteredAnswers, currentPage + 1);
+    pagination.appendChild(nextBtn);
+  }
+  
+  return pagination;
 }
 
 function formatCodeBlock(text) {
@@ -235,65 +394,6 @@ function formatCodeBlock(text) {
       line.trim() ? `<div class="text-line">${escapeHtml(line)}</div>` : '<div class="text-line"><br></div>'
     ).join('');
   }
-}
-
-function addRowEventListeners(row, item) {
-  // Favorite button
-  row.querySelector('.fav-btn-table').onclick = async function() {
-    const answerId = this.getAttribute('data-id');
-    const currentFavorite = this.getAttribute('data-favorite') === 'true';
-    const newFavorite = !currentFavorite;
-    
-    try {
-      await updateFavoriteInFirestore(answerId, newFavorite);
-      // Real-time listener will update the UI automatically
-    } catch (error) {
-      alert('Error updating favorite: ' + error.message);
-    }
-  };
-  
-  // Delete button
-  row.querySelector('.delete-btn-table').onclick = async function() {
-    const answerId = this.getAttribute('data-id');
-    
-    if (confirm('Are you sure you want to delete this answer?')) {
-      try {
-        await deleteAnswerFromFirestore(answerId);
-        // Real-time listener will update the UI automatically
-      } catch (error) {
-        alert('Error deleting answer: ' + error.message);
-      }
-    }
-  };
-}
-
-function createPaginationControls(currentPage, totalPages, totalAnswers) {
-  const pagination = document.createElement('div');
-  pagination.className = 'pagination';
-  
-  // Previous button
-  if (currentPage > 1) {
-    const prevBtn = document.createElement('button');
-    prevBtn.textContent = '← Previous';
-    prevBtn.onclick = () => renderTable(window.currentAnswers, currentPage - 1);
-    pagination.appendChild(prevBtn);
-  }
-  
-  // Page info
-  const pageInfo = document.createElement('span');
-  pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${totalAnswers} total answers)`;
-  pageInfo.className = 'page-info';
-  pagination.appendChild(pageInfo);
-  
-  // Next button
-  if (currentPage < totalPages) {
-    const nextBtn = document.createElement('button');
-    nextBtn.textContent = 'Next →';
-    nextBtn.onclick = () => renderTable(window.currentAnswers, currentPage + 1);
-    pagination.appendChild(nextBtn);
-  }
-  
-  return pagination;
 }
 
 // =============================================================================
@@ -415,6 +515,16 @@ window.onload = async function() {
     
     // Set up form handler
     document.getElementById('add-answer-form').addEventListener('submit', handleFormSubmit);
+    
+    // Set up search handlers
+    document.getElementById('search-btn').addEventListener('click', applyFilters);
+    document.getElementById('clear-search-btn').addEventListener('click', clearFilters);
+    
+    // Set up search input handlers (search as you type)
+    document.getElementById('search-text').addEventListener('input', applyFilters);
+    document.getElementById('company-filter').addEventListener('change', applyFilters);
+    document.getElementById('date-from').addEventListener('change', applyFilters);
+    document.getElementById('date-to').addEventListener('change', applyFilters);
     
     // Add UI elements
     addUIElements();

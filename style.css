@@ -55,6 +55,70 @@ h1 {
   background: #0056b3;
 }
 
+/* Search Container Styles */
+.search-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 1.5rem;
+}
+.search-container h3 {
+  margin-top: 0;
+  color: #333;
+  margin-bottom: 1rem;
+}
+.search-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+.filter-group {
+  display: flex;
+  flex-direction: column;
+}
+.filter-group label {
+  font-weight: bold;
+  color: #555;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+.filter-group input,
+.filter-group select {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+.search-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  height: fit-content;
+}
+.search-btn:hover {
+  background: #218838;
+}
+.clear-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  height: fit-content;
+}
+.clear-btn:hover {
+  background: #5a6268;
+}
+
 /* Table Styles */
 .answers-table {
   width: 100%;
@@ -129,6 +193,7 @@ h1 {
   margin-bottom: 0;
 }
 
+/* Action Buttons */
 .fav-btn-table {
   background: none;
   border: none;
@@ -136,9 +201,23 @@ h1 {
   font-size: 1.2em;
   cursor: pointer;
   padding: 0.25rem;
+  margin-right: 0.5rem;
 }
 .fav-btn-table:hover {
   transform: scale(1.1);
+}
+.copy-btn-table {
+  background: none;
+  border: none;
+  color: #007bff;
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 0.25rem;
+  margin-right: 0.5rem;
+}
+.copy-btn-table:hover {
+  transform: scale(1.1);
+  color: #0056b3;
 }
 .delete-btn-table {
   background: none;
@@ -242,8 +321,12 @@ h1 {
   padding: 2rem;
 }
 
-/* Responsive Table */
+/* Responsive Design */
 @media (max-width: 768px) {
+  .search-filters {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
   .answers-table {
     font-size: 0.9em;
   }
@@ -266,5 +349,9 @@ h1 {
   .code-block {
     font-size: 0.75em;
     max-height: 200px;
+  }
+  .search-container {
+    margin: 1rem auto;
+    padding: 1rem;
   }
 } 
