@@ -164,11 +164,15 @@ function createTableBody(currentAnswers) {
 
 function createTableRow(item) {
   const row = document.createElement('tr');
+  
+  // Format the answer field to preserve code formatting
+  const formattedAnswer = formatCodeBlock(item.answer);
+  
   row.innerHTML = `
     <td>${escapeHtml(item.company)}</td>
     <td>${escapeHtml(item.date)}</td>
     <td>${escapeHtml(item.question)}</td>
-    <td>${escapeHtml(item.answer)}</td>
+    <td class="answer-cell">${formattedAnswer}</td>
     <td>
       <button class="fav-btn-table" data-id="${item.id}" data-favorite="${item.favorite}">
         ${item.favorite ? '★' : '☆'}
@@ -183,6 +187,54 @@ function createTableRow(item) {
   addRowEventListeners(row, item);
   
   return row;
+}
+
+function formatCodeBlock(text) {
+  // Check if the text contains code-like patterns
+  const codePatterns = [
+    /#include/,
+    /using namespace/,
+    /int main/,
+    /function/,
+    /const/,
+    /let/,
+    /var/,
+    /class/,
+    /public/,
+    /private/,
+    /return/,
+    /if\s*\(/,
+    /for\s*\(/,
+    /while\s*\(/,
+    /cout/,
+    /printf/,
+    /console\.log/,
+    /import/,
+    /from/,
+    /def /,
+    /def\s/,
+    /void/,
+    /int\s/,
+    /string/,
+    /vector/,
+    /array/,
+    /std::/,
+    /namespace/,
+    /template/,
+    /typename/
+  ];
+  
+  const hasCodePattern = codePatterns.some(pattern => pattern.test(text));
+  
+  if (hasCodePattern) {
+    // Format as code block
+    return `<pre class="code-block">${escapeHtml(text)}</pre>`;
+  } else {
+    // Format as regular text with line breaks
+    return text.split('\n').map(line => 
+      line.trim() ? `<div class="text-line">${escapeHtml(line)}</div>` : '<div class="text-line"><br></div>'
+    ).join('');
+  }
 }
 
 function addRowEventListeners(row, item) {

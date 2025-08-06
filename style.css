@@ -98,6 +98,37 @@ h1 {
   max-width: 400px;
   word-wrap: break-word;
 }
+
+/* Code Block Styles */
+.answer-cell {
+  position: relative;
+}
+
+.code-block {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 0.75rem;
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85em;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+  color: #333;
+}
+
+.text-line {
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+}
+
+.text-line:last-child {
+  margin-bottom: 0;
+}
+
 .fav-btn-table {
   background: none;
   border: none;
@@ -231,5 +262,9 @@ h1 {
   .instruction-box {
     margin: 1rem;
     padding: 1.5rem;
+  }
+  .code-block {
+    font-size: 0.75em;
+    max-height: 200px;
   }
 } 
