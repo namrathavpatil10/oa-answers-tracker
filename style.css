@@ -168,6 +168,37 @@ h1 {
   position: relative;
 }
 
+.answer-content {
+  position: relative;
+  width: 100%;
+}
+
+.copy-btn-inline {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ddd;
+  color: #007bff;
+  font-size: 0.9em;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+.answer-cell:hover .copy-btn-inline {
+  opacity: 1;
+}
+
+.copy-btn-inline:hover {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
 .code-block {
   background: #f8f9fa;
   border: 1px solid #e9ecef;

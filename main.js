@@ -265,14 +265,18 @@ function createTableRow(item) {
     <td>${escapeHtml(item.company)}</td>
     <td>${escapeHtml(item.date)}</td>
     <td>${escapeHtml(item.question)}</td>
-    <td class="answer-cell">${formattedAnswer}</td>
+    <td class="answer-cell">
+      <div class="answer-content">
+        ${formattedAnswer}
+        <button class="copy-btn-inline" data-answer="${escapeHtml(item.answer)}" title="Copy Answer">📋</button>
+      </div>
+    </td>
     <td>
       <button class="fav-btn-table" data-id="${item.id}" data-favorite="${item.favorite}">
         ${item.favorite ? '★' : '☆'}
       </button>
     </td>
     <td>
-      <button class="copy-btn-table" data-answer="${escapeHtml(item.answer)}" title="Copy Answer">📋</button>
       <button class="delete-btn-table" data-id="${item.id}" title="Delete">🗑️</button>
     </td>
   `;
@@ -299,7 +303,7 @@ function addRowEventListeners(row, item) {
   };
   
   // Copy button
-  row.querySelector('.copy-btn-table').onclick = function() {
+  row.querySelector('.copy-btn-inline').onclick = function() {
     const answerText = this.getAttribute('data-answer');
     copyToClipboard(answerText);
   };
