@@ -1,72 +1,79 @@
+// Firebase Firestore functions
 async function loadAnswers() {
   try {
-    const response = await fetch('answers.json');
-    const answers = await response.json();
+    const querySnapshot = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb, "answers"));
+    const answers = [];
+    querySnapshot.forEach((doc) => {
+      answers.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
     return answers;
   } catch (error) {
-    console.error('Error loading answers:', error);
+    console.error('Error loading answers from Firestore:', error);
     return [];
   }
 }
 
-function getStoredAnswers() {
-  const stored = localStorage.getItem('oa_answers');
-  return stored ? JSON.parse(stored) : [];
-}
-
-function saveAnswers(answers) {
-  localStorage.setItem('oa_answers', JSON.stringify(answers));
-  // Also update the answers.json file
-  updateAnswersFile(answers);
-}
-
-async function updateAnswersFile(answers) {
+async function addAnswerToFirestore(answer) {
   try {
-    // Create a blob with the updated data
-    const dataStr = JSON.stringify(answers, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
-    
-    // Create a download link to save the updated file
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'answers.json';
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    // Show instructions to user
-    showUpdateInstructions();
+    const docRef = await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "answers"), {
+      company: answer.company,
+      date: answer.date,
+      question: answer.question,
+      answer: answer.answer,
+      favorite: answer.favorite,
+      createdAt: new Date().toISOString()
+    });
+    console.log("Answer added with ID: ", docRef.id);
+    return docRef.id;
   } catch (error) {
-    console.error('Error updating answers file:', error);
+    console.error("Error adding answer: ", error);
+    throw error;
   }
 }
 
-function showUpdateInstructions() {
-  const instructions = document.createElement('div');
-  instructions.className = 'update-instructions';
-  instructions.innerHTML = `
-    <div class="instruction-box">
-      <h3>📁 Data Updated!</h3>
-      <p>Your answers.json file has been downloaded. To persist your data:</p>
-      <ol>
-        <li>Replace the answers.json file in your repository</li>
-        <li>Commit and push the changes</li>
-        <li>GitHub Actions will automatically validate the data</li>
-      </ol>
-      <button onclick="this.parentElement.parentElement.remove()">Got it!</button>
-    </div>
-  `;
-  document.body.appendChild(instructions);
+async function deleteAnswerFromFirestore(answerId) {
+  try {
+    await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "answers", answerId));
+    console.log("Answer deleted successfully");
+  } catch (error) {
+    console.error("Error deleting answer: ", error);
+    throw error;
+  }
 }
 
-function deleteAnswer(answers, index) {
-  if (confirm('Are you sure you want to delete this answer?')) {
-    answers.splice(index, 1);
-    saveAnswers(answers);
-    renderTable(answers);
+async function updateFavoriteInFirestore(answerId, isFavorite) {
+  try {
+    await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "answers", answerId), {
+      favorite: isFavorite
+    });
+    console.log("Favorite updated successfully");
+  } catch (error) {
+    console.error("Error updating favorite: ", error);
+    throw error;
+  }
+}
+
+// Real-time listener for data changes
+function setupRealtimeListener() {
+  try {
+    const unsubscribe = window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb, "answers"), (snapshot) => {
+      const answers = [];
+      snapshot.forEach((doc) => {
+        answers.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      renderTable(answers, 1);
+    });
+    
+    // Store unsubscribe function for cleanup
+    window.firestoreUnsubscribe = unsubscribe;
+  } catch (error) {
+    console.error('Error setting up real-time listener:', error);
   }
 }
 
@@ -75,7 +82,7 @@ function renderTable(answers, currentPage = 1) {
   container.innerHTML = '';
   
   if (answers.length === 0) {
-    container.innerHTML = '<p class="no-data">No answers found.</p>';
+    container.innerHTML = '<p class="no-data">No answers found. Add your first answer above!</p>';
     return;
   }
   
@@ -105,10 +112,7 @@ function renderTable(answers, currentPage = 1) {
   
   // Create table body
   const tbody = document.createElement('tbody');
-  currentAnswers.forEach((item, idx) => {
-    const actualIndex = startIndex + idx;
-    const favKey = `fav_${item.company}_${item.date}_${actualIndex}`;
-    const isFav = JSON.parse(localStorage.getItem(favKey)) ?? item.favorite;
+  currentAnswers.forEach((item) => {
     const row = document.createElement('tr');
     row.innerHTML = `
       <td>${item.company}</td>
@@ -116,23 +120,39 @@ function renderTable(answers, currentPage = 1) {
       <td>${item.question}</td>
       <td>${item.answer}</td>
       <td>
-        <button class="fav-btn-table" data-key="${favKey}">
-          ${isFav ? '★' : '☆'}
+        <button class="fav-btn-table" data-id="${item.id}" data-favorite="${item.favorite}">
+          ${item.favorite ? '★' : '☆'}
         </button>
       </td>
       <td>
-        <button class="delete-btn-table" data-index="${actualIndex}">🗑️</button>
+        <button class="delete-btn-table" data-id="${item.id}">🗑️</button>
       </td>
     `;
     
-    row.querySelector('.fav-btn-table').onclick = function() {
-      const newFav = !isFav;
-      localStorage.setItem(favKey, JSON.stringify(newFav));
-      renderTable(answers, currentPage);
+    row.querySelector('.fav-btn-table').onclick = async function() {
+      const answerId = this.getAttribute('data-id');
+      const currentFavorite = this.getAttribute('data-favorite') === 'true';
+      const newFavorite = !currentFavorite;
+      
+      try {
+        await updateFavoriteInFirestore(answerId, newFavorite);
+        // Real-time listener will update the UI automatically
+      } catch (error) {
+        alert('Error updating favorite: ' + error.message);
+      }
     };
     
-    row.querySelector('.delete-btn-table').onclick = function() {
-      deleteAnswer(answers, actualIndex);
+    row.querySelector('.delete-btn-table').onclick = async function() {
+      const answerId = this.getAttribute('data-id');
+      
+      if (confirm('Are you sure you want to delete this answer?')) {
+        try {
+          await deleteAnswerFromFirestore(answerId);
+          // Real-time listener will update the UI automatically
+        } catch (error) {
+          alert('Error deleting answer: ' + error.message);
+        }
+      }
     };
     
     tbody.appendChild(row);
@@ -171,7 +191,7 @@ function renderTable(answers, currentPage = 1) {
   }
 }
 
-function handleFormSubmit(event) {
+async function handleFormSubmit(event) {
   event.preventDefault();
   
   const newAnswer = {
@@ -182,85 +202,82 @@ function handleFormSubmit(event) {
     favorite: false
   };
   
-  // Get existing answers and add new one
-  const existingAnswers = getStoredAnswers();
-  const allAnswers = [...existingAnswers, newAnswer];
-  saveAnswers(allAnswers);
-  
-  // Clear form
-  event.target.reset();
-  
-  // Re-render table (go to last page to show new answer)
-  const totalPages = Math.ceil(allAnswers.length / 10);
-  renderTable(allAnswers, totalPages);
-  
-  // Show success message
-  alert('Answer added successfully! Check the downloaded answers.json file.');
-}
-
-function downloadJSON() {
-  const answers = getStoredAnswers();
-  const dataStr = JSON.stringify(answers, null, 2);
-  const dataBlob = new Blob([dataStr], {type: 'application/json'});
-  const url = URL.createObjectURL(dataBlob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'answers.json';
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-async function syncFromGitHub() {
   try {
-    const answers = await loadAnswers();
-    const storedAnswers = getStoredAnswers();
+    // Show loading state
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Adding...';
+    submitBtn.disabled = true;
     
-    // Merge GitHub data with local data
-    const allAnswers = [...answers, ...storedAnswers];
+    // Add to Firestore
+    await addAnswerToFirestore(newAnswer);
     
-    // Remove duplicates based on company + date + question
-    const uniqueAnswers = allAnswers.filter((answer, index, self) => 
-      index === self.findIndex(a => 
-        a.company === answer.company && 
-        a.date === answer.date && 
-        a.question === answer.question
-      )
-    );
+    // Clear form
+    event.target.reset();
     
-    saveAnswers(uniqueAnswers);
-    renderTable(uniqueAnswers, 1);
+    // Show success message
+    alert('Answer added successfully! 🎉');
     
-    console.log('✅ Synced data from GitHub');
   } catch (error) {
-    console.error('Error syncing from GitHub:', error);
+    alert('Error adding answer: ' + error.message);
+  } finally {
+    // Reset button
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    submitBtn.textContent = 'Add Answer';
+    submitBtn.disabled = false;
   }
 }
 
+function downloadJSON() {
+  // Load current data and download
+  loadAnswers().then(answers => {
+    const dataStr = JSON.stringify(answers, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'answers.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
 window.onload = async function() {
-  // Load initial answers from JSON file
-  const initialAnswers = await loadAnswers();
-  
-  // Get stored answers (if any)
-  const storedAnswers = getStoredAnswers();
-  
-  // Combine and display
-  const allAnswers = [...initialAnswers, ...storedAnswers];
-  renderTable(allAnswers, 1);
-  
-  // Set up form handler
-  document.getElementById('add-answer-form').addEventListener('submit', handleFormSubmit);
-  
-  // Add download button
-  const downloadBtn = document.createElement('button');
-  downloadBtn.textContent = 'Download Updated JSON';
-  downloadBtn.onclick = downloadJSON;
-  downloadBtn.style.cssText = 'position: fixed; top: 20px; right: 20px; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;';
-  document.body.appendChild(downloadBtn);
-  
-  // Add sync button
-  const syncBtn = document.createElement('button');
-  syncBtn.textContent = '🔄 Sync from GitHub';
-  syncBtn.onclick = syncFromGitHub;
-  syncBtn.style.cssText = 'position: fixed; top: 60px; right: 20px; padding: 10px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;';
-  document.body.appendChild(syncBtn);
+  try {
+    // Wait for Firebase to be ready
+    let attempts = 0;
+    while (!window.firebaseDb && attempts < 50) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+    
+    if (!window.firebaseDb) {
+      throw new Error('Firebase not initialized');
+    }
+    
+    // Set up real-time listener
+    setupRealtimeListener();
+    
+    // Set up form handler
+    document.getElementById('add-answer-form').addEventListener('submit', handleFormSubmit);
+    
+    // Add download button
+    const downloadBtn = document.createElement('button');
+    downloadBtn.textContent = '📥 Download JSON';
+    downloadBtn.onclick = downloadJSON;
+    downloadBtn.style.cssText = 'position: fixed; top: 20px; right: 20px; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;';
+    document.body.appendChild(downloadBtn);
+    
+    // Add status indicator
+    const statusIndicator = document.createElement('div');
+    statusIndicator.textContent = '🟢 Connected to Firebase';
+    statusIndicator.style.cssText = 'position: fixed; top: 60px; right: 20px; padding: 8px; background: #28a745; color: white; border: none; border-radius: 5px; font-size: 12px;';
+    document.body.appendChild(statusIndicator);
+    
+    console.log('✅ Firebase initialized successfully');
+    
+  } catch (error) {
+    console.error('Error initializing Firebase:', error);
+    alert('Error connecting to database. Please refresh the page.');
+  }
 }; 

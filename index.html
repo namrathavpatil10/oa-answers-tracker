@@ -5,6 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OA Correct Answers Tracker</title>
   <link rel="stylesheet" href="style.css">
+  
+  <!-- Firebase SDK -->
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBHrL6Nv74SAeY_IlsW0MCYSDGqJmdbt24",
+      authDomain: "oa-answers-tracker.firebaseapp.com",
+      projectId: "oa-answers-tracker",
+      storageBucket: "oa-answers-tracker.firebasestorage.app",
+      messagingSenderId: "677658278237",
+      appId: "1:677658278237:web:45b974fa7458255d2a90b4",
+      measurementId: "G-4VM79R8GVS"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getFirestore(app);
+
+    // Make Firebase available globally
+    window.firebaseApp = app;
+    window.firebaseDb = db;
+    window.firebaseCollection = collection;
+    window.firebaseAddDoc = addDoc;
+    window.firebaseGetDocs = getDocs;
+    window.firebaseDeleteDoc = deleteDoc;
+    window.firebaseDoc = doc;
+    window.firebaseUpdateDoc = updateDoc;
+    window.firebaseOnSnapshot = onSnapshot;
+  </script>
 </head>
 <body>
   <h1>OA Correct Answers Tracker</h1>
